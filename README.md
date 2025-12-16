@@ -1,44 +1,64 @@
+ 
 
+# 🧩 Jigsaw Puzzle Solver – Image Processing & Assembly (Phase 1 & 2)
 
-# 🧩 Jigsaw Puzzle Image Processing & Edge Detection – Phase 1
+This project implements a **classical computer vision pipeline** to solve square-piece jigsaw puzzles **without using AI/ML models**. It is divided into two phases:
 
-This repository contains **Phase 1** of a Jigsaw Puzzle Solver project.
-The goal of this phase is to **prepare** the dataset of puzzle images by applying:
-
-✔ Image enhancement
-✔ Image slicing
-✔ Edge detection
-✔ Visualization & dataset structuring
-
-These processed images will later power **puzzle assembly (Phase 2)**.
+* **Phase 1:** Dataset preparation and image processing
+* **Phase 2:** Puzzle assembly using edge matching and heuristic search
 
 ---
 
 ## 📁 Project Overview
 
-This project processes a dataset of cartoon/anime puzzle images (`2×2`, `4×4`, `8×8`) and generates:
+This system works with puzzle grids of sizes `2×2`, `4×4`, and `8×8`, and performs:
 
-### **1. Enhanced Images**
+### 🔹 Phase 1 – Image Preprocessing
 
-Light smoothing → optional sharpening → slight saturation boost
-(you used a simple pipeline to avoid losing important puzzle edge information)
+1. **Image Enhancement:** smoothing + sharpening + saturation boost
+2. **Image Slicing:** cuts each puzzle into equal square tiles
+3. **Edge Detection:** classic operators (`Sobel`, `Laplacian`, `Canny`) on each tile
 
-### **2. Sliced Images**
+All results are saved in a structured folder for reuse.
 
-Each enhanced image is divided into tiles (2×2, 4×4, 8×8) and saved individually.
+### 🔹 Phase 2 – Puzzle Assembly
 
-### **3. Edge Detection Outputs**
+Given sliced and enhanced tiles, the system reconstructs the puzzle using:
 
-Applied **three classic edge detectors** on every sliced tile:
+* Edge representation (LAB color, gradients)
+* Brute-force search (2×2) or heuristic solvers (4×4+, BB matching, beam search)
 
-* **Sobel**
-* **Laplacian**
-* **Canny**
+---
 
-These are stored in:
+## 📊 Results Summary
+
+| Puzzle Size         | Accuracy             | Notebook           |
+| ------------------- | -------------------- | ------------------ |
+| **2×2** (4 pieces)  | **99.09%** (109/110) | `2x2_solver.ipynb` |
+| **4×4** (16 pieces) | **92.73%** (102/110) | `4x4_solver.ipynb` |
+| **8×8** (64 pieces) | **5.45%** (6/110)    | `8x8_solver.ipynb` |
+
+---
+
+## 🧩 Phase 1: Preprocessing & Edge Detection
+
+### 📦 Outputs
+
+Each original image produces:
+
+* Enhanced version
+* Sliced tiles
+* Edge versions of tiles (Sobel, Laplacian, Canny)
+
+### 📁 Folder Structure
 
 ```
-phase1/results/edges_detection_results/
+phase1/results/
+├── enhanced_images_sliced/
+│   ├── puzzle_2x2/
+│   ├── puzzle_4x4/
+│   └── puzzle_8x8/
+└── edges_detection_results/
     ├── sobel/
     ├── laplacian/
     └── canny/
@@ -46,142 +66,97 @@ phase1/results/edges_detection_results/
 
 ---
 
-## 🏗 Folder Structure (important parts)
+## 🧩 Phase 2: Solvers
 
-```
-phase1/
-│
-├── utils/
-│   ├── enhancement.py           # enhancement pipeline
-│   ├── slicing.py               # slicing into grid tiles
-│   ├── edges.py                 # sobel / laplacian / canny
-│   └── visualization.py
-│
-├── results/
-│   ├── enhanced_images/         # enhanced full images
-│   ├── enhanced_images_sliced/  # enhanced → sliced tiles
-│   └── edges_detection_results/ # sobel, laplacian, canny outputs
-│
-├── report/
-│
-└── Phase1.ipynb                 # main notebook (pipeline runner)
-```
+### ✅ 2×2 Solver (`2x2_solver.ipynb`)
 
----
+* **Algorithm:** Brute-force (4! = 24 permutations)
+* **Edge Features:** LAB + Sobel Gradient + Laplacian
+* **Matching Metric:** Weighted distance (0.5 LAB, 0.3 Gradient, 0.2 Laplacian)
+* **Output Folder:** `results/2x2_out/`
 
-## 🔧 Main Features
-
-### **✓ Image Enhancement**
-
-A light and safe enhancement pipeline:
+#### 🔧 Functions:
 
 ```python
-smooth → sharpen → slight saturation boost
+edge_features(edge)     # Extract color & edge features
+edge_distance(a, b)     # Computes distance
+solve_2x2(pieces)       # Try all permutations
 ```
-
-Designed to improve **edge clarity** without destroying puzzle details.
-
-### **✓ Automatic Slicing**
-
-Each enhanced image is sliced according to its grid size:
-
-* `puzzle_2x2` → 4 pieces
-* `puzzle_4x4` → 16 pieces
-* `puzzle_8x8` → 64 pieces
-
-Tiles are saved for further edge matching.
-
-### **✓ Edge Detection**
-
-Three edge detectors:
-
-```
-Sobel (gradient magnitude)
-Laplacian (second derivative)
-Canny (binary edges)
-```
-
-Outputs are saved per puzzle folder.
 
 ---
 
-## ▶ Running the Project
+### 🔲 4×4 Solver (`4x4_solver.ipynb`)
 
-### **1. Enhancement + Slicing**
+* **Algorithm:** Heuristic Placer → Best-Buddies Refinement → Shifter (greedy reseeding)
+* **Features:** LAB + Gradients + Laplacian
+* **Matching:** Best-Buddies priority + compatibility matrix
+* **Refinement:** Region growing + swaps
+* **Output Folder:** `results/4x4_out/`
 
-Run the main notebook:
+#### 🔧 Pipeline:
 
+```python
+extract_borders(piece)        # LAB + gradient strips
+border_distance_2d(a, b)      # Edge comparison
+build_compatibility(pieces)   # Cost matrix (4 directions)
+placer(n, grid_n, compat)     # Greedy BB placement
+shifter(..., compat)          # Segment grow + reseed
 ```
-Phase1.ipynb
-```
-
-This generates:
-
-* `enhanced_images`
-* `enhanced_images_sliced`
-
-### **2. Edge Detection**
-
-Run:
-
-```bash
-python edges.py
-```
-
-This generates:
-
-```
-results/edges_detection_results/
-```
-
-With subfolders for:
-
-* Sobel
-* Laplacian
-* Canny
 
 ---
 
-## 🖼 Sample Outputs
+### ⬛ 8×8 Solver (`8x8_solver.ipynb`)
 
-### **Edge Detection Example**
+* **Algorithm:** Meta-solver ensemble (5 strategies) + SA refinement
 
-| Sobel                    | Laplacian               | Canny              |
-| ------------------------ | ----------------------- | ------------------ |
-| Grayscale gradient edges | Second derivative edges | Clean binary edges |
+* **Strategies Include:**
 
----
+  * LAB Beam
+  * Best-Buddy Guided Greedy
+  * Hybrid LAB + Gradient
+  * Wide Beam (beam=300)
 
-## 🧠 Why This Processing Matters (for Phase 2)
-
-Puzzle assembly later depends heavily on:
-
-* Edge clarity
-* Texture consistency
-* Accurate borders
-* Reduced noise
-
-Phase 1 ensures each tile is **clean, consistent, and edge-highlighted**, making reconstruction algorithms much more accurate.
+* **Output Folder:** `results/8x8_out/`
 
 ---
 
-## 👨‍💻 Technologies Used
+## 🖼️ Visualization & Demonstration
 
-* **Python**
-* **OpenCV**
-* **NumPy**
-* **Matplotlib**
-* **Jupyter Notebook**
+* Each notebook includes side-by-side visual outputs:
 
----
+  * Original image
+  * Final reconstructed layout
+* Intermediate debugging outputs include:
 
-## 📌 Future Work (Phase 2)
+  * Edge strips
+  * Matching compatibility maps
+  * Segmentation clusters (4×4+)
 
-* Piece matching (border compatibility)
-* Puzzle assembly algorithms (2×2, 4×4, 8×8)
-* Correctness evaluation
-* Optimization for speed & accuracy
+> For submission: include one clean puzzle and one challenging case (rotation, noise).
 
 ---
 
+## 🧠 Key Concepts
+
+### Best Buddies
+
+Two tiles A and B are best buddies if:
+
+* A’s right edge best matches B’s left, **and**
+* B’s left edge best matches A’s right
+
+### LAB Color Space
+
+Used instead of RGB for more perceptually uniform distance calculations.
+
+### Beam Search
+
+Keeps only top-K partial solutions at each step to manage combinatorics.
+
+### Simulated Annealing (SA)
+
+Probabilistically accepts worse solutions to escape local minima.
+
+
+ 
 
